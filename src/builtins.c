@@ -88,10 +88,22 @@ builtin_cd(struct command *cmd, struct builtin_redir const *redir_list)
       dprintf(get_pseudo_fd(redir_list, STDERR_FILENO), "cd: HOME not set\n");
       return -1;
     }
+  } else{       // BG added from here to the bottom
+    // If too many arguments provided
+    if (cmd->word_count > 2) {
+      dprintf(get_pseudo_fd(redir_list, STDERR_FILENO), "cd: Too many arguments\n");
+      return -1;
+    }
+    // Set target directory to the provided argument
+    target_dir = cmd->words[1];   // Implement cd with arguments
   }
-  /*TODO: Implement cd with arguments 
-   */
-  chdir(target_dir);
+
+  if (chdir(target_dir) == -1) {
+    dprintf(get_pseudo_fd(redir_list, STDERR_FILENO), "cd: chdir operation failed\n");  //BG added
+    return -1;
+  }
+
+  // Successfully changed directory
   return 0;
 }
 
