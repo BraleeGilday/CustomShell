@@ -42,8 +42,15 @@ expand_command_words(struct command *cmd)
   for (size_t i = 0; i < cmd->word_count; ++i) {
     expand(&cmd->words[i]);
   }
-  /* TODO Assignment values */
-  /* TODO I/O Filenames */
+  /* BGDID Assignment values */
+  for (size_t i = 0; i < cmd->assignment_count; ++i) {
+    expand(&cmd->assignments[i]->value);
+  }
+
+  /* BGDID I/O Filenames */
+  for (size_t i = 0; i < cmd->io_redir_count; ++i) {
+    expand(&cmd->io_redirs[i]->filename);
+  }
   return 0;
 }
 
@@ -60,8 +67,17 @@ do_variable_assignment(struct command const *cmd, int export_all)
 {
   for (size_t i = 0; i < cmd->assignment_count; ++i) {
     struct assignment *a = cmd->assignments[i];
-    /* TODO Assign */
-    /* TODO Export (if export_all != 0) */
+    /* BGDID Assign */
+    if (vars_set(a->name, a->value) < 0) {
+      return -1;
+    }
+
+    /*BGDID Export (if export_all != 0) */
+    if (export_all != 0) {
+      if (vars_export(a->name) < 0) {
+        return -1;
+      } 
+    }  
   }
   return 0;
 }
@@ -101,20 +117,20 @@ get_io_flags(enum io_operator io_op)
   switch (io_op) {
     case OP_LESSAND: /* <& */
     case OP_LESS:    /* < */
-      flags = 0;     /* TODO */
+      flags = O_RDONLY;                                /* BGDID */
       break;
     case OP_GREATAND: /* >& */
     case OP_GREAT:    /* > */
-      flags = 0;      /* TODO */
+      flags = O_WRONLY | O_CREAT | 0777 | O_EXCL;      /* BGDID */
       break;
     case OP_DGREAT: /* >> */
-      flags = 0;    /* TODO */
+      flags = O_WRONLY | O_CREAT | 0777 | O_APPEND;    /* BGDID */
       break;
     case OP_LESSGREAT: /* <> */
-      flags = 0;       /* TODO */
+      flags = O_RDWR | O_CREAT | 0777;                 /* BGDID */
       break;
     case OP_CLOBBER: /* >| */
-      flags = 0;     /* TODO */
+      flags = O_WRONLY | O_CREAT | 0777 | O_TRUNC;     /* BGDID */
       break;
   }
   return flags;
@@ -134,8 +150,19 @@ static int
 move_fd(int src, int dst)
 {
   if (src == dst) return dst;
-  /* TODO move src to dst */
-  /* TODO close src */
+
+  /* BGDID move src to dst */
+  if (dup2(src, dst) == -1) {
+    // error occured
+    return -1;
+  }
+
+  /* BGDID close src */
+  if (close(src) == -1){
+    //error occured
+    close(dst);  //BG- should I do this to make sure it's not left open upon error??
+    return -1;
+  }
   return dst;
 }
 
@@ -305,7 +332,9 @@ do_io_redirects(struct command *cmd)
             && src <= INT_MAX /* <--- this is *critical* bounds checking when
                                  downcasting */
         ) {
-          /* TODO duplicate src to dst. */
+          /* BGDID duplicate src to dst. */
+          if (dup2(src, r->io_number) < 0) goto err;
+
         } else {
           /* XXX Syntax error--(not a valid number)--we can "recover" by
            * attempting to open a file instead. That's what bash does.
@@ -319,17 +348,21 @@ do_io_redirects(struct command *cmd)
     file_open:;
       int flags = get_io_flags(r->io_op);
       gprintf("attempting to open file %s with flags %d", r->filename, flags);
-      /* TODO Open the specified file with the appropriate flags and mode
+      /* BGDID Open the specified file with the appropriate flags and mode
        *
        * XXX Note: you can supply a mode to open() even if you're not creating a
        * file. it will just ignore that argument.
        */
+      // BG- copied from do_builtin_io_redirects
+      int fd = open(r->filename, flags, 0777);  //BG added; I am pretty sure 0777 is the needed mode for creating a file? Double check.
+      if (fd < 0) goto err; //BG added
 
-      /* TODO Move the opened file descriptor to the redirection target */
+      /* BGDID Move the opened file descriptor to the redirection target */
       /* XXX use move_fd() */
+      if (move_fd(fd, r->io_number) < 0) goto err;   //BG added; check that that's the correct destination
     }
     if (0) {
-    err: /* TODO Anything that can fail should jump here. No silent errors!!! */
+    err: /* BGDID Anything that can fail should jump here. No silent errors!!! */
       status = -1;
     }
   }
@@ -386,7 +419,7 @@ run_command_list(struct command_list *cl)
      * [TODO] Update upstream_pipefd initializer to get the (READ) side of the
      *        pipeline saved from the previous command
      */
-    int const upstream_pipefd = -1;
+    int const upstream_pipefd = pipeline_data.pipe_fd;  //BG added
     int const has_upstream_pipe = (upstream_pipefd >= 0);
 
     /* If the current command is a pipeline command, create a new pipe on
@@ -408,6 +441,20 @@ run_command_list(struct command_list *cl)
      */
     int pipe_fds[2] = {-1, -1};
 
+    // [BGDID] Create new pipe if needed & [BGDID] Handle errors that occur
+    // If the CURRENT command is a pipeline command, create a new pipe on pipe_fds[]. 
+    if (is_pl) {
+      // page 892-893 in Linux Programming Intrerface describes this system call to create a new pipe
+      if (pipe(pipe_fds) == -1) {         /* BG Create the pipe if needed*/   // BG- should this be pipe2() instead?
+        goto err;                        /* BG Handle errors that occur */
+      }
+    }    
+
+      /* pipe() returns two open file descriptors in the given array, pipe_fds: 
+      * one for the read end of the pipe (pipe_fds[0]) and
+      * one for the write end of the pipe (pipe_fds[1]) 
+      -BG */ 
+
     /* Grab the WRITE side of the pipeline we just created */
     int const downstream_pipefd = pipe_fds[STDOUT_FILENO];
     int const has_downstream_pipe = (downstream_pipefd >= 0);
@@ -426,12 +473,11 @@ run_command_list(struct command_list *cl)
      * [TODO] Fork process if:
      *       Not a buitin command, OR
      *       Not a foreground command
-     * [TODO] Re-assign child_pid to the new process id
-     * [TODO] Handle errors if they occur
-     */
-    int const did_fork = 0; /* TODO */
+    */
+    int const did_fork = (!is_builtin || !is_fg); /* BGDID */
+
     if (did_fork) {
-      /* [TODO] fork */
+      /* [BGDID] fork */
 
       /* All of the processes in a pipeline (or single command) belong to the
        * same process group. This is how the shell manages job control. We will
@@ -447,6 +493,9 @@ run_command_list(struct command_list *cl)
        * it in both the parent and the child, and ignore an EACCES error if it
        * occurs.
        */
+      // [BGDID] fork
+      child_pid = fork();
+      if (child_pid == -1) goto err;    // BG added; example on pg 517 in Linux Prgramming Interface
 
       if (setpgid(child_pid, pipeline_data.pgid) < 0) {
         if (errno == EACCES) errno = 0;
@@ -513,11 +562,22 @@ run_command_list(struct command_list *cl)
 
         /* Redirect the two standard streams overrides IF they are not set to
          * -1 This sets up pipeline redirection
-         *
-         * [TODO] move upstream_pipefd to STDIN_FILENO  if it's valid
-         *
-         * [TODO] move downstream_pipefd to STDOUT_FILENO if it's valid
          */
+
+        // [BGDID] Move upstream_pipefd to STDIN_FILENO if it's valid
+        // I assume we use move_fd function above!
+        // redirects the STDIN of the current process to read from upstream_pipefd instead of the default input
+        if (has_upstream_pipe) {
+          // move; go to err if error in move
+          if (move_fd(upstream_pipefd, STDIN_FILENO) < 0) goto err;  // unless I was supposed to use dup?
+        }
+
+        // [BGDID] Move downstream_pipefd to STDOUT_FILENO if it's valid
+        // redirects STDOUT of the current process to the write end of the pipe (downstream)
+        if (has_downstream_pipe) {
+          // move; go to err if error in move
+          if (move_fd(downstream_pipefd, STDOUT_FILENO) < 0) goto err;
+        }
 
         /* Now handle the remaining redirect operators from the command. */
         if (do_io_redirects(cmd) < 0) err(1, 0);
@@ -541,7 +601,9 @@ run_command_list(struct command_list *cl)
          *
          *  XXX Note: cmd->words is a null-terminated array of strings. Nice!
          */
-
+        // [BGDID] Execute the command described by the list of words
+        execvp(cmd->words[0], cmd->words);   //words[0] holds name of command, words is an array of strings as mentioned with arguments (if any)
+        // BG- No conditional because if we reach this, we "return-ed" which is a mark of an error; error sent to errno
         err(127, 0); /* Exec failure -- why might this happen? */
         assert(0);   /* UNREACHABLE -- This should never be reached ABORT! */
       }

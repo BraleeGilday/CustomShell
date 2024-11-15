@@ -122,7 +122,7 @@ static int
 builtin_exit(struct command *cmd, struct builtin_redir const *redir_list)
 {
   /* TODO: Set params.status to the appropriate value before exiting */
-  
+
   // If [n] is not ommited
   if (cmd->word_count != 1) {
     // It is an error if too many arguments
@@ -148,10 +148,8 @@ builtin_exit(struct command *cmd, struct builtin_redir const *redir_list)
     }
 
     params.status = (int) status_as_num;   // cast from long to int -BG added
+    printf(params.status);
   }
-  // Then params.status will be set to the most recently terminated foreground command
-  // I *THINK* this means I shouldn't do any to the params.status -BG
-
   bigshell_exit();
   return -1;
 }
