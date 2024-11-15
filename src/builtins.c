@@ -122,6 +122,36 @@ static int
 builtin_exit(struct command *cmd, struct builtin_redir const *redir_list)
 {
   /* TODO: Set params.status to the appropriate value before exiting */
+  
+  // If [n] is not ommited
+  if (cmd->word_count != 1) {
+    // It is an error if too many arguments
+    if (cmd->word_count > 2) {
+      dprintf(get_pseudo_fd(redir_list, STDERR_FILENO), "exit: too many arguments\n");  //BG added
+      return -1;
+    }
+  
+  // Convert string (with all numeric characters) from cmd->words[1] to an int
+  // and set it as the params status 
+  // BG- trying to copy syntax from do_io_redirect from runner.c
+  char *end = cmd->words[1];
+  long status_as_num = strtol(cmd->words[1], &end, 10);   // 10 stands for base 10  
+
+    if (*end != '\0') {       //BG added
+      dprintf(get_pseudo_fd(redir_list, STDERR_FILENO), "exit: non-numeric argument\n");
+      return -1;    // BG- make sure status is non-empty and end points to a null-terminator; if not, return -1
+    }
+
+    if (status_as_num < INT_MIN || status_as_num > INT_MAX) {   // BG added
+      dprintf(get_pseudo_fd(redir_list, STDERR_FILENO), "exit: value out of range\n");
+      return -1;
+    }
+
+    params.status = (int) status_as_num;   // cast from long to int -BG added
+  }
+  // Then params.status will be set to the most recently terminated foreground command
+  // I *THINK* this means I shouldn't do any to the params.status -BG
+
   bigshell_exit();
   return -1;
 }
