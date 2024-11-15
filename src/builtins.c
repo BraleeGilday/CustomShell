@@ -137,7 +137,7 @@ builtin_exit(struct command *cmd, struct builtin_redir const *redir_list)
     char *end = cmd->words[1];
     long status_as_num = strtol(cmd->words[1], &end, 10);   // 10 stands for base 10  
 
-    if (*(cmd->words[1]) && *end) {
+    if (*(cmd->words[1]) && !*end) {
       params.status = (int) status_as_num;   // cast from long to int -BG added
     } else {
             dprintf(get_pseudo_fd(redir_list, STDERR_FILENO), "exit: non-numeric argument\n");
