@@ -131,24 +131,20 @@ builtin_exit(struct command *cmd, struct builtin_redir const *redir_list)
       return -1;
     }
   
-  // Convert string (with all numeric characters) from cmd->words[1] to an int
-  // and set it as the params status 
-  // BG- trying to copy syntax from do_io_redirect from runner.c
-  char *end = cmd->words[1];
-  long status_as_num = strtol(cmd->words[1], &end, 10);   // 10 stands for base 10  
+    // Convert string (with all numeric characters) from cmd->words[1] to an int
+    // and set it as the params status 
+    // BG- trying to copy syntax from do_io_redirect from runner.c
+    char *end = cmd->words[1];
+    long status_as_num = strtol(cmd->words[1], &end, 10);   // 10 stands for base 10  
 
-    if (*end != '\0') {       //BG added
-      dprintf(get_pseudo_fd(redir_list, STDERR_FILENO), "exit: non-numeric argument\n");
+    if (*(cmd->words[1]) && *end) {
+      params.status = (int) status_as_num;   // cast from long to int -BG added
+    } else {
+            dprintf(get_pseudo_fd(redir_list, STDERR_FILENO), "exit: non-numeric argument\n");
       return -1;    // BG- make sure status is non-empty and end points to a null-terminator; if not, return -1
     }
 
-    if (status_as_num < INT_MIN || status_as_num > INT_MAX) {   // BG added
-      dprintf(get_pseudo_fd(redir_list, STDERR_FILENO), "exit: value out of range\n");
-      return -1;
-    }
-
-    params.status = (int) status_as_num;   // cast from long to int -BG added
-    printf(params.status);
+    //params.status = (int) status_as_num;   // cast from long to int -BG added
   }
   bigshell_exit();
   return -1;
