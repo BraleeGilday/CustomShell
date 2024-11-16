@@ -26,8 +26,8 @@ main(int argc, char *argv[])
 
   /* Program initialization routines */
   if (parser_init() < 0) goto err;
-  /* TODO Enable this line once you've implemented the function */
-  //if (signal_init() < 0) goto err;
+  /* BGDID Enable this line once you've implemented the function */
+  if (signal_init() < 0) goto err;
 
   /* Main Event Loop: REPL -- Read Evaluate Print Loop */
   for (;;) {
