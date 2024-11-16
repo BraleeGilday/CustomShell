@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <signal.h>
 #include <errno.h>
+#include <stddef.h>
 
 #include "signal.h"
 
@@ -59,9 +60,9 @@ signal_init(void)
 int
 signal_enable_interrupt(int sig)
 {
-  /* TODO set the signal disposition for signal to interrupt  */
-  errno = ENOSYS; /* not implemented */
-  return -1;
+  /* BGDID set the signal disposition for signal to interrupt  */
+  if (sigaction(sig, &interrupt_action, NULL) < 0) return -1;   // alo could use if (signal(sig, interrupting_signal_handler) == SIG_ERR) return -1;
+  return 0;
 }
 
 /** ignore a signal
@@ -74,8 +75,11 @@ int
 signal_ignore(int sig)
 {
   /* TODO set the signal disposition for signal back to its old state */
-  errno = ENOSYS; /* not implemented */
-  return -1;
+
+// This feels like it could be very wrong (because completely ignoring the above comment)
+if (signal(sig, SIG_IGN) == SIG_ERR) return -1;
+
+return 0;
 }
 
 /** Restores signal dispositions to what they were when bigshell was invoked
@@ -91,6 +95,11 @@ signal_restore(void)
    * e.g. sigaction(SIGNUM, &saved_old_handler, NULL);
    *
    * */
-  errno = ENOSYS; /* not implemented */
-  return -1;
+  if (sigaction(SIGTSTP, &old_sigtstp, NULL) < 0) return -1;
+
+  if (sigaction(SIGINT, &old_sigint, NULL) < 0) return -1;
+
+  if (sigaction(SIGTTOU, &old_sigttou, NULL) < 0) return -1;
+
+  return 0;
 }
