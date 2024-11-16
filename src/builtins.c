@@ -139,6 +139,8 @@ builtin_exit(struct command *cmd, struct builtin_redir const *redir_list)
 
     if (*(cmd->words[1]) && !*end) {
       params.status = (int) status_as_num;   // cast from long to int -BG added
+      printf("status_as_num: %ld\n", status_as_num);
+      printf("params.status: %d\n", params.status);
     } else {
             dprintf(get_pseudo_fd(redir_list, STDERR_FILENO), "exit: non-numeric argument\n");
       return -1;    // BG- make sure status is non-empty and end points to a null-terminator; if not, return -1
@@ -186,7 +188,9 @@ static int
 builtin_unset(struct command *cmd, struct builtin_redir const *redir_list)
 {
   for (size_t i = 1; i < cmd->word_count; ++i) {
-    /* TODO: Unset variables */
+    /* BGDID: Unset variables */
+    char const *var_name = cmd->words[i];
+    vars_unset(var_name);  // validation and error handling seems to be handled well in vars_unset -BG
   }
   return 0;
 }
