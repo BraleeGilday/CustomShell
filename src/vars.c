@@ -31,15 +31,23 @@ static int
 is_valid_varname(char const *name)
 {
   assert(name);
-  /* TODO: Implement me.
+  /* BGDID: Implement me.
    * Refer to:
    *  3.230 Name. Base Definitions. POSIX.1-2008
    *  regex to match: [A-Za-z_][A-Za-z0-9_]*
    *
    * You'll most definitely want to use functions from: ctype.h(0P)
    */
-  errno = ENOSYS; /* Not implemented */
-  return -1;
+
+  // Mimic check that the first character is upper case letter, lower case letter, or underscore ([A-Za-z_])
+  if (!isalpha(name[0]) && (name[0] != '_')) return 0;        // pg 249 in C book
+
+  // Mimic check that the following characters are upper case letter, lower case letter, digit, or underscore [A-Za-z0-9_]*
+  for (int i = 0; name[i] != '\0'; i++) {
+    if (!isalpha(name[i]) && !isdigit(name[i]) && (name[i] != '_')) return 0;
+  }
+
+  return 1;
 }
 
 /** Checks if a variable name is a valid XBD name 
@@ -52,10 +60,13 @@ is_valid_varname(char const *name)
 int
 vars_is_valid_varname(char const *name)
 {
-  /* TODO: Implement argument validation before tail-calling internal
+  /* BGDID: Implement argument validation before tail-calling internal
    * is_valid_varname() function. */
-  errno = ENOSYS;
-  return -1;
+  
+  // Make sure argument is not a null pointer or a pointer to an empty string
+  if (*name == '\0' || name == NULL) return 0;    // double check that first name should be dereferences
+
+  return is_valid_varname(name);
 }
 
 /** returns nullptr if not found 
