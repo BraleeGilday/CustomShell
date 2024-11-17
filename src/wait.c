@@ -18,14 +18,20 @@ wait_on_fg_pgid(pid_t const pgid)
   if (pgid < 0) return -1;
   jid_t const jid = jobs_get_jid(pgid);
   if (jid < 0) return -1;
+
+  //BG added this line to get the controlling terminal's Process Group ID:
+  int fg_process_grp = tcgetpgrp(STDIN_FILENO);    // Will handle errors at the end
+
   /* Make sure the foreground group is running */
-  /* TODO send the "continue" signal to the process group 'pgid'
+  /* BGDID send the "continue" signal to the process group 'pgid'
    * XXX review kill(2)
    */
+  if (kill(pgid, SIGCONT) < 0) goto err;
 
   if (is_interactive) {
-    /* TODO make 'pgid' the foreground process group
+    /* BGDID make 'pgid' the foreground process group
      * XXX review tcsetpgrp(3) */
+    if (tcsetpgrp(STDIN_FILENO, pgid) < 0) goto err; 
   }
 
   /* XXX From this point on, all exit paths must account for setting bigshell
@@ -43,7 +49,7 @@ wait_on_fg_pgid(pid_t const pgid)
   for (;;) {
     /* Wait on ALL processes in the process group 'pgid' */
     int status;
-    pid_t res = waitpid(/* TODO */ 0, &status, 0);
+    pid_t res = waitpid(/*BGDID*/ -pgid, &status, 0);
     if (res < 0) {
       /* Error occurred (some errors are ok, see below)
        *
@@ -54,14 +60,18 @@ wait_on_fg_pgid(pid_t const pgid)
         errno = 0;
         if (jobs_get_status(jid, &status) < 0) goto err;
         if (WIFEXITED(status)) {
-          /* TODO set params.status to the correct value */
+          /* BGDID set params.status to the correct value */
+          params.status = WEXITSTATUS(status); 
         } else if (WIFSIGNALED(status)) {
-          /* TODO set params.status to the correct value */
+          /* BGDID set params.status to the correct value */
+          params.status = (128 + (WTERMSIG(status)));   // Double check I'm supposed to add to 128
         }
 
-        /* TODO remove the job for this group from the job list
+        /* BGDID remove the job for this group from the job list
          *  see jobs.h
          */
+        if (jobs_remove_jid(jid) < 0) goto err;
+
         goto out;
       }
       goto err; /* An actual error occurred */
@@ -72,10 +82,10 @@ wait_on_fg_pgid(pid_t const pgid)
     /* Record status for reporting later when we see ECHILD */
     if (jobs_set_status(jid, status) < 0) goto err;
 
-    /* TODO handle case where a child process is stopped
+    /* BGDID handle case where a child process is stopped
      *  The entire process group is placed in the background
      */
-    if (/* TODO */ 0) {
+    if (WIFSTOPPED(status)) {
       fprintf(stderr, "[%jd] Stopped\n", (intmax_t)jid);
       goto out;
     }
@@ -97,6 +107,8 @@ out:
      *       You need to also finish signal.c to have full functionality here.
      *       Otherwise you bigshell will get stopped.
      */
+    if (fg_process_grp < 0) goto err;   // Questionable to handle this here... -BG
+    if (tcsetpgrp(fg_process_grp, STDIN_FILENO) < 0) goto err;      // I am hoping fg_process_grp is BigShell's process group id -BG
   }
   return retval;
 }
