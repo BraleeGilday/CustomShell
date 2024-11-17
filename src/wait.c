@@ -19,9 +19,6 @@ wait_on_fg_pgid(pid_t const pgid)
   jid_t const jid = jobs_get_jid(pgid);
   if (jid < 0) return -1;
 
-  //BG added this line to get the controlling terminal's Process Group ID:
-  int fg_process_grp = tcgetpgrp(STDIN_FILENO);    // Will handle errors at the end
-
   /* Make sure the foreground group is running */
   /* BGDID send the "continue" signal to the process group 'pgid'
    * XXX review kill(2)
@@ -107,8 +104,7 @@ out:
      *       You need to also finish signal.c to have full functionality here.
      *       Otherwise you bigshell will get stopped.
      */
-    if (fg_process_grp < 0) goto err;   // Questionable to handle this here... -BG
-    if (tcsetpgrp(fg_process_grp, STDIN_FILENO) < 0) goto err;      // I am hoping fg_process_grp is BigShell's process group id -BG
+    if (tcsetpgrp(0, STDIN_FILENO) < 0) goto err;      // I am hoping fg_process_grp is BigShell's process group id -BG
   }
   return retval;
 }
