@@ -105,7 +105,7 @@ out:
      *       Otherwise you bigshell will get stopped.
      */
 
-    pid_t terminal_pgid = tcgetpgrp(STDIN_FILENO);
+    pid_t terminal_pgid = tcgetpgrp(0);
     if (tcsetpgrp(0, terminal_pgid) < 0) goto err;      // I am hoping fg_process_grp is BigShell's process group id -BG
   }
   return retval;
