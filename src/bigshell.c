@@ -37,13 +37,13 @@ prompt:
 
     /* Read input and parse it into a list of commands */
     
-    /* TODO Enable this line once you've implemented the function */
-    //if (signal_enable_interrupt(SIGINT) < 0) goto err;
+    /* BGDID Enable this line once you've implemented the function */
+    if (signal_enable_interrupt(SIGINT) < 0) goto err;
     
     int res = command_list_parse(&cl, stdin);
     
-    /* TODO Enable this line once you've implemented the function */
-    // if (signal_ignore(SIGINT) < 0) goto err;
+    /* BGDID Enable this line once you've implemented the function */
+    if (signal_ignore(SIGINT) < 0) goto err;
 
     if (res == -1) { /* System library errors */
       switch (errno) { /* Handle specific errors */
