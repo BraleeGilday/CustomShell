@@ -104,7 +104,9 @@ out:
      *       You need to also finish signal.c to have full functionality here.
      *       Otherwise you bigshell will get stopped.
      */
-    if (tcsetpgrp(0, STDIN_FILENO) < 0) goto err;      // I am hoping fg_process_grp is BigShell's process group id -BG
+
+    pid_t terminal_pgid = tcgetpgrp(STDIN_FILENO);
+    if (tcsetpgrp(STDIN_FILENO, terminal_pgid) < 0) goto err;      // I am hoping fg_process_grp is BigShell's process group id -BG
   }
   return retval;
 }
@@ -127,11 +129,11 @@ wait_on_bg_jobs()
     pid_t pgid = jobs[i].pgid;
     jid_t jid = jobs[i].jid;
     for (;;) {
-      /* TODO: Modify the following line to wait for process group
+      /* BGDID: Modify the following line to wait for process group
        * XXX make sure to do a nonblocking wait!
        */
       int status;
-      pid_t pid = waitpid(0, &status, 0);
+      pid_t pid = waitpid(-pgid, &status, WNOHANG);
       if (pid == 0) {
         /* Unwaited children that haven't exited */
         break;
