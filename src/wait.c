@@ -62,6 +62,7 @@ wait_on_fg_pgid(pid_t const pgid)
         } else if (WIFSIGNALED(status)) {
           /* BGDID set params.status to the correct value */
           params.status = (128 + (WTERMSIG(status)));   // Double check I'm supposed to add to 128
+          printf("params.status: %d\n", params.status);    //DELETE, just for testing
         }
 
         /* BGDID remove the job for this group from the job list
@@ -97,7 +98,7 @@ out:
   }
 
   if (is_interactive) {
-    /* TODO make bigshell the foreground process group again
+    /* BGTRIED make bigshell the foreground process group again
      * XXX review tcsetpgrp(3)
      *
      * Note: this will cause bigshell to receive a SIGTTOU signal.
@@ -106,6 +107,7 @@ out:
      */
 
     pid_t terminal_pgid = tcgetpgrp(STDIN_FILENO);
+    printf("The terminal process group id is: %d\n", terminal_pgid);     // DELETE- Just for testing 
     if (tcsetpgrp(STDIN_FILENO, terminal_pgid) < 0) goto err;      // I am hoping fg_process_grp is BigShell's process group id -BG
   }
   return retval;

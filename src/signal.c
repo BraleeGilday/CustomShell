@@ -90,7 +90,7 @@ return 0;
 int
 signal_restore(void)
 {
-  /* TODO restore old actions 
+  /* BGDID restore old actions 
    *
    * e.g. sigaction(SIGNUM, &saved_old_handler, NULL);
    *

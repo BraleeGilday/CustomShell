@@ -308,10 +308,11 @@ do_io_redirects(struct command *cmd)
 
       if (strcmp(r->filename, "-") == 0) {
         /* [n]>&- and [n]<&- close file descriptor [n] */
-        /* TODO close file descriptor n.
+        /* BGDID close file descriptor n.
          *
-         * XXX What is n? Look for it in `struct io_redir->???` (parser.h)
+         * XXX What is n? Look for it in `struct io_redir->???` (parser.h) BG- It's IO_number
          */
+        if (close(r->io_number) < 0) goto err;
       } else {
         /* The filename is interpreted as a file descriptor number to
          * redirect to. For example, 2>&1 duplicates file descriptor 1
@@ -416,7 +417,7 @@ run_command_list(struct command_list *cl)
 
     /* Prepare to read from pipeline of previous command, if exists.
      *
-     * [TODO] Update upstream_pipefd initializer to get the (READ) side of the
+     * [BGDID] Update upstream_pipefd initializer to get the (READ) side of the
      *        pipeline saved from the previous command
      */
     int const upstream_pipefd = pipeline_data.pipe_fd;  //BG added
