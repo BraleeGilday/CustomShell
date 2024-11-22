@@ -23,7 +23,11 @@ wait_on_fg_pgid(pid_t const pgid)
   /* BGDID send the "continue" signal to the process group 'pgid'
    * XXX review kill(2)
    */
-  if (kill(pgid, SIGCONT) < 0) goto err;
+  if (kill(pgid, SIGCONT) < 0) goto err;    //BG added
+  
+  // BG added; double check this 11/21
+  pid_t terminal_pgid = tcgetpgrp(STDIN_FILENO);
+  if (terminal_pgid < 0) goto err;
 
   if (is_interactive) {
     /* BGDID make 'pgid' the foreground process group
@@ -105,7 +109,6 @@ out:
      *       Otherwise you bigshell will get stopped.
      */
 
-    pid_t terminal_pgid = tcgetpgrp(0);
     if (tcsetpgrp(0, terminal_pgid) < 0) goto err;      // I am hoping fg_process_grp is BigShell's process group id -BG
   }
   return retval;
