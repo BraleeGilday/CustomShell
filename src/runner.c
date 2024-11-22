@@ -121,16 +121,16 @@ get_io_flags(enum io_operator io_op)
       break;
     case OP_GREATAND: /* >& */
     case OP_GREAT:    /* > */
-      flags = O_WRONLY | O_CREAT | 0777 | O_EXCL;      /* BGDID */
+      flags = O_WRONLY | O_CREAT | O_EXCL;      /* BGDID */
       break;
     case OP_DGREAT: /* >> */
-      flags = O_WRONLY | O_CREAT | 0777 | O_APPEND;    /* BGDID */
+      flags = O_WRONLY | O_CREAT  | O_APPEND;    /* BGDID */
       break;
     case OP_LESSGREAT: /* <> */
-      flags = O_RDWR | O_CREAT | 0777;                 /* BGDID */
+      flags = O_RDWR | O_CREAT;                 /* BGDID */
       break;
     case OP_CLOBBER: /* >| */
-      flags = O_WRONLY | O_CREAT | 0777 | O_TRUNC;     /* BGDID */
+      flags = O_WRONLY | O_CREAT | O_TRUNC;     /* BGDID */
       break;
   }
   return flags;
@@ -160,7 +160,6 @@ move_fd(int src, int dst)
   /* BGDID close src */
   if (close(src) == -1){
     //error occured
-    close(dst);  //BG- should I do this to make sure it's not left open upon error??
     return -1;
   }
   return dst;
