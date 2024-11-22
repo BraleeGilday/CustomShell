@@ -104,6 +104,7 @@ builtin_cd(struct command *cmd, struct builtin_redir const *redir_list)
   }
 
   // Successfully changed directory
+  vars_set("PWD", target_dir);
   return 0;
 }
 
