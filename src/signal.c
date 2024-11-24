@@ -61,9 +61,11 @@ int
 signal_enable_interrupt(int sig)
 {
   /* BGDID set the signal disposition for signal to interrupt  */
-  if (sigaction(sig, &interrupt_action, NULL) < 0) return -1;   // alo could use if (signal(sig, interrupting_signal_handler) == SIG_ERR) return -1;
+  // Used in bigshell: if (signal_enable_interrupt(SIGINT) < 0) goto err;
+  if (sigaction(sig, &interrupt_action, NULL) < 0) return -1;   // also could use if (signal(sig, interrupting_signal_handler) == SIG_ERR) return -1;
   return 0;
 }
+
 
 /** ignore a signal
  *
@@ -74,7 +76,8 @@ signal_enable_interrupt(int sig)
 int
 signal_ignore(int sig)
 {
-  /* TODO set the signal disposition for signal back to its old state */
+  /* TODO set the signal disposition for signal back to its old state */  //BG ?????
+  // Use in the line in BigShell: if (signal_ignore(SIGINT) < 0) goto err;
 
 // This feels like it could be very wrong (because completely ignoring the above comment)
 if (signal(sig, SIG_IGN) == SIG_ERR) return -1;

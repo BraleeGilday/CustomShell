@@ -23,16 +23,16 @@ wait_on_fg_pgid(pid_t const pgid)
   /* BGDID send the "continue" signal to the process group 'pgid'
    * XXX review kill(2)
    */
-  if (kill(pgid, SIGCONT) < 0) goto err;    //BG added
+  if (kill(pgid, SIGCONT) < 0) return -1;    //BG added
   
   // BG added; double check this 11/21
   pid_t terminal_pgid = tcgetpgrp(STDIN_FILENO);
-  if (terminal_pgid < 0) goto err;
+  if (terminal_pgid < 0)  return -1;
 
   if (is_interactive) {
     /* BGDID make 'pgid' the foreground process group
      * XXX review tcsetpgrp(3) */
-    if (tcsetpgrp(STDIN_FILENO, pgid) < 0) goto err; 
+    if (tcsetpgrp(STDIN_FILENO, pgid) < 0) return -1; 
   }
 
   /* XXX From this point on, all exit paths must account for setting bigshell
@@ -84,10 +84,11 @@ wait_on_fg_pgid(pid_t const pgid)
     if (jobs_set_status(jid, status) < 0) goto err;
 
     /* BGDID handle case where a child process is stopped
-     *  The entire process group is placed in the background
+     *  The entire process group is placed in the background !
      */
     if (WIFSTOPPED(status)) {
       fprintf(stderr, "[%jd] Stopped\n", (intmax_t)jid);
+      kill(-pgid, SIGCONT);     // I really don't think this is going to work. BG
       goto out;
     }
 
@@ -101,7 +102,7 @@ out:
   }
 
   if (is_interactive) {
-    /* BGTRIED make bigshell the foreground process group again
+    /* BGDID make bigshell the foreground process group again
      * XXX review tcsetpgrp(3)
      *
      * Note: this will cause bigshell to receive a SIGTTOU signal.
@@ -109,7 +110,7 @@ out:
      *       Otherwise you bigshell will get stopped.
      */
 
-    if (tcsetpgrp(0, terminal_pgid) < 0) goto err;      // I am hoping fg_process_grp is BigShell's process group id -BG
+    if (tcsetpgrp(0, terminal_pgid) < 0) goto err;
   }
   return retval;
 }
