@@ -64,6 +64,7 @@ signal_enable_interrupt(int sig)
   // Used in bigshell: if (signal_enable_interrupt(SIGINT) < 0) goto err;
   if (sigaction(sig, &interrupt_action, NULL) < 0) return -1;   // also could use if (signal(sig, interrupting_signal_handler) == SIG_ERR) return -1;
   return 0;
+
 }
 
 
@@ -80,7 +81,14 @@ signal_ignore(int sig)
   // Use in the line in BigShell: if (signal_ignore(SIGINT) < 0) goto err;
 
 // This feels like it could be very wrong (because completely ignoring the above comment)
-if (signal(sig, SIG_IGN) == SIG_ERR) return -1;
+if (sigaction(sig, &ignore_action, NULL) < 0) return -1;
+
+//if (signal(sig, SIG_IGN) == SIG_ERR) return -1;
+
+/* Although by the description of the signal() system call, it appears to be returning void, it is in fact
+returning a pointer to the previous disposition the signal had. This is handy when we want to preserve
+the previous handling conditions to be restored at a later point in time
+*/
 
 return 0;
 }

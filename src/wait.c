@@ -88,7 +88,6 @@ wait_on_fg_pgid(pid_t const pgid)
      */
     if (WIFSTOPPED(status)) {
       fprintf(stderr, "[%jd] Stopped\n", (intmax_t)jid);
-      kill(-pgid, SIGCONT);     // I really don't think this is going to work. BG
       goto out;
     }
 
