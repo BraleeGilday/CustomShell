@@ -88,7 +88,9 @@ wait_on_fg_pgid(pid_t const pgid)
      */
     if (WIFSTOPPED(status)) {
       fprintf(stderr, "[%jd] Stopped\n", (intmax_t)jid);
-      goto out;
+      if (tcsetpgrp(0, terminal_pgid) < 0) goto err;  //delete
+      return retval;  // delete
+      // goto out;
     }
 
     /* A child exited, but others remain. Loop! */

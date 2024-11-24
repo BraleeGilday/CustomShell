@@ -82,14 +82,6 @@ signal_ignore(int sig)
 
 // This feels like it could be very wrong (because completely ignoring the above comment)
 if (sigaction(sig, &ignore_action, NULL) < 0) return -1;
-
-//if (signal(sig, SIG_IGN) == SIG_ERR) return -1;
-
-/* Although by the description of the signal() system call, it appears to be returning void, it is in fact
-returning a pointer to the previous disposition the signal had. This is handy when we want to preserve
-the previous handling conditions to be restored at a later point in time
-*/
-
 return 0;
 }
 
