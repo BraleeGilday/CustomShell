@@ -23,7 +23,7 @@ wait_on_fg_pgid(pid_t const pgid)
   /* BGDID send the "continue" signal to the process group 'pgid'
    * XXX review kill(2)
    */
-  if (kill(pgid, SIGCONT) < 0) return -1;    //BG added
+  if (kill(-pgid, SIGCONT) < 0) return -1;    //BG added; should it be -pgid?
   
   // BG added; double check this 11/21
   pid_t terminal_pgid = tcgetpgrp(STDIN_FILENO);
@@ -51,6 +51,18 @@ wait_on_fg_pgid(pid_t const pgid)
     /* Wait on ALL processes in the process group 'pgid' */
     int status;
     pid_t res = waitpid(/*BGDID*/ -pgid, &status, 0);
+      /* waitpid(): on success, returns the process ID of the child whose state has changed; 
+       * On error, -1 is returned. bg
+       * used to wait for state changes in a child of the calling process, and obtain information
+       *  about the child whose state has changed. A state change is considered to be: 
+       * the child terminated; the child was stopped by a signal; or the child was resumed by a signal.
+       * 
+       * The waitpid() system call suspends execution of the calling process until a child specified 
+       * by pid argument has changed state. 
+       * 
+       * This call to waitpid() waits for any child process whose 
+       * process group ID is equal to that of the calling process because of the options argument, 0.
+      */
     if (res < 0) {
       /* Error occurred (some errors are ok, see below)
        *
@@ -60,12 +72,16 @@ wait_on_fg_pgid(pid_t const pgid)
         /* No unwaited-for children. The job is done! */
         errno = 0;
         if (jobs_get_status(jid, &status) < 0) goto err;
+
         if (WIFEXITED(status)) {
+          // That is, if the child terminated normally -BG
           /* BGDID set params.status to the correct value */
-          params.status = WEXITSTATUS(status); 
+          params.status = WEXITSTATUS(status); // returns the exit status of the child; macro should only be employed if WIFEXITED returned true
         } else if (WIFSIGNALED(status)) {
+          // That is, if the child process was terminated by a signal -BG
           /* BGDID set params.status to the correct value */
-          params.status = (128 + (WTERMSIG(status)));   // Double check I'm supposed to add to 128
+          params.status = (128 + (WTERMSIG(status)));   // Double check I'm supposed to add to 128, yes
+            // returns the number of the signal that caused the child process to terminate. This macro should only be employed if WIFSIGNALED returned true.
         }
 
         /* BGDID remove the job for this group from the job list
@@ -83,14 +99,12 @@ wait_on_fg_pgid(pid_t const pgid)
     /* Record status for reporting later when we see ECHILD */
     if (jobs_set_status(jid, status) < 0) goto err;
 
-    /* BGDID handle case where a child process is stopped
-     *  The entire process group is placed in the background !
+    /* BGISTRYING to handle case where a child process is stopped
+     *  The entire process group is placed in the background (how is that being taken care of??)
      */
     if (WIFSTOPPED(status)) {
       fprintf(stderr, "[%jd] Stopped\n", (intmax_t)jid);
-      if (tcsetpgrp(0, terminal_pgid) < 0) goto err;  //delete
-      return retval;  // delete
-      // goto out;
+      goto out;
     }
 
     /* A child exited, but others remain. Loop! */
@@ -139,6 +153,12 @@ wait_on_bg_jobs()
        */
       int status;
       pid_t pid = waitpid(-pgid, &status, WNOHANG);
+        /* 
+        * waitpid(): on success, returns the process ID of the child whose state has changed; 
+        * if WNOHANG was specified and one or more child(ren) specified by pid exist, 
+        * but have not yet changed state, then 0 is returned. 
+        * On error, -1 is returned.
+        */
       if (pid == 0) {
         /* Unwaited children that haven't exited */
         break;

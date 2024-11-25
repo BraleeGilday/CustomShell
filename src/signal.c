@@ -81,6 +81,8 @@ signal_ignore(int sig)
   // Use in the line in BigShell: if (signal_ignore(SIGINT) < 0) goto err;
 
 // This feels like it could be very wrong (because completely ignoring the above comment)
+// Acually, I don't think it ignores the comment because the "old state" is the before we called 
+// ... signal_enable_interupt. Right? It's liek a toggle between the ignore_action and interupt_actuion handlers.
 if (sigaction(sig, &ignore_action, NULL) < 0) return -1;
 return 0;
 }
