@@ -23,7 +23,10 @@ wait_on_fg_pgid(pid_t const pgid)
   /* BGDID send the "continue" signal to the process group 'pgid'
    * XXX review kill(2)
    */
-  if (kill(-pgid, SIGCONT) < 0) return -1;    //BG added; should it be -pgid?
+  if (kill(-pgid, SIGCONT) < 0) return -1;
+    // I think it's correct to have -pgid; 
+    // If pid is less than -1, then sig is sent to every process in the
+    //   process group whose ID is -pid (Linux manpage)
   
   // BG added; double check this 11/21
   pid_t terminal_pgid = tcgetpgrp(STDIN_FILENO);
@@ -50,7 +53,7 @@ wait_on_fg_pgid(pid_t const pgid)
   for (;;) {
     /* Wait on ALL processes in the process group 'pgid' */
     int status;
-    pid_t res = waitpid(/*BGDID*/ -pgid, &status, 0);
+    pid_t res = waitpid(/*BGDID*/-pgid, &status, /*BGDID*/ WUNTRACED);
       /* waitpid(): on success, returns the process ID of the child whose state has changed; 
        * On error, -1 is returned. bg
        * used to wait for state changes in a child of the calling process, and obtain information
@@ -99,7 +102,7 @@ wait_on_fg_pgid(pid_t const pgid)
     /* Record status for reporting later when we see ECHILD */
     if (jobs_set_status(jid, status) < 0) goto err;
 
-    /* BGISTRYING to handle case where a child process is stopped
+    /* BGDID to handle case where a child process is stopped
      *  The entire process group is placed in the background (how is that being taken care of??)
      */
     if (WIFSTOPPED(status)) {
@@ -125,7 +128,8 @@ out:
      *       Otherwise you bigshell will get stopped.
      */
 
-    if (tcsetpgrp(0, terminal_pgid) < 0) goto err;
+    if (tcsetpgrp(STDIN_FILENO, terminal_pgid) < 0) return -1;
+                  // Or should I use 0?
   }
   return retval;
 }
