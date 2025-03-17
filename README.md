@@ -12,14 +12,14 @@ In an operating system, the kernel is the central software that manages and allo
 While a graphical interface (GUI) may offer a simpler way for users to interact with the system, the shell offers greater control and flexibility, particularly for advanced users like system administrators or programmers [8]. Common shells include the Bourne Shell (sh) and the Bourne Again Shell (bash) [5, pp.25], both of which are based on the Portable Operating System Interface (POSIX) Shell Command Language [7]. 
 
 BigShell is a user-program inspired by the shell command language specification in POSIX.1-2008 [1]. It is designed to provide an interface for interacting with the operating system’s kernel, similar to sh or bash. While some features are simplified or removed due to time and complexity constraints, BigShell still includes many core functionalities found in standard shells [5]:
--Parsing of command-line input into commands to be executed [1]
--Executing of external commands as separate processes [1]
--Implementing of a variety of shell built-in commands within the shell itself [1]
--Performing I/O redirections [1]
--Manipulating environment variables [1]
--Handling signals for the shell and executed commands [1]
--Managing processes and pipelines using job control [1]
--The process of implementing BigShell, with much of a POSIX’s Shell’s functionality, lends to a deeper understanding of Unix-like file systems, process management, signal handling, I/O redirection, and more, all of which are essential for understanding the underlying operating system [1]. 
+- Parsing of command-line input into commands to be executed [1]
+- Executing of external commands as separate processes [1]
+- Implementing of a variety of shell built-in commands within the shell itself [1]
+- Performing I/O redirections [1]
+- Manipulating environment variables [1]
+- Handling signals for the shell and executed commands [1]
+- Managing processes and pipelines using job control [1]
+- The process of implementing BigShell, with much of a POSIX’s Shell’s functionality, lends to a deeper understanding of Unix-like file systems, process management, signal handling, I/O redirection, and more, all of which are essential for understanding the underlying operating system [1]. 
 
 ## II. PROGRAM STRUCTURE
 BigShell is designed as a POSIX-like shell, with its structure divided into several modular components that interact to process and execute user commands. The file bigshell.c contains the main function for the program, which is the entry point of BigShell [2]. When main() is called, in this case by a parent shell, it first does some initializations. First, an instance of the command_list structure is initialized to empty, as no commands have yet been received. Then, it checks to see if the program is running in interactive mode (connected to the terminal) or non-interactive mode (reading input from a file or pipe). And finally, signal handling is initialized. 
@@ -120,14 +120,6 @@ I implemented the following functionality into the skeleton code:
 - **Process Management**: Includes determining when to fork and implementing the actual `fork()` call. It also sets up process groups for job control and manages how the parent waits for the child process using the functions in **wait.c**.
 - **Redirection**: Handles file descriptor redirection for pipes.
 - **Command Execution**: Implements `execvp()` for external command execution [3].
-
-## IV. CHALLENGES AND SOLUTIONS
-The most challenging part of development was figuring out how and where to begin. As someone new to the C programming language within the last three months, I found working with multiple C source files incredibly intimidating. Getting used to compiling before debugging was also an adjustment, as I’m used to programming in Python, but the instructor videos on make helped with running and debugging the program. The next, and most important, thing I did to get started, was I drew out a flowchart. The most logical place to begin was the entry point to BigShell, so I started with the main() function in bigshell.c. I mapped out its logic, tracked which files each function came from, and color-coded the function calls to match the file they were in. 
-
-Following the logic of main(), I discovered that much of the implementation centered on the run_command_list function, which relies heavily on the command_list structure in parser.h. At first, this structure was incredibly challenging to understand due to its three levels of nested structures and use of double pointers. I revisited The C Programming Language [13] to review nested structures and pointers. I started by drawing out the innermost levels (assignment and io_redir structures), then worked outward. This approach took time but ultimately paid off, as it allowed me to piece together how commands were stored, accessed, parsed, and executed.
-
-For me, the most challenging topics were pipelines and process management, which were completely new concepts to me. For pipelines, The Linux Programming Interface book had many examples in chapter 44 [5], which helped, along with the Linux man pages. In terms of process management, I had difficulty with the wait_on_fg_pgid function. I finally resolved these issues through countless hours of reading documentation, especially around the waitpid() syscall, creating a very detailed flowchart for the function, and seeking guidance from Ed Discussion posts and office hours. 
-From this project, I’ve learned to tackle large, intimidating tasks by breaking them into manageable pieces, using flowcharts to map out logic, and dedicating time to research with reliable resources. Moving forward, I’ll continue applying these strategies, but now with a newfound confidence in my abilities. Completing this project, despite my initial doubts, proved that I am capable of overcoming complex challenges.
 
 ## V. CONCLUSION
 The development of BigShell provided a hands-on opportunity to explore many important operating system concepts. This project offered immense practice with the C programming language, including the use of structures, pointers, and libraries. It also required a strong understanding of processes, particularly the use of fork() and exec() to create new processes, managing process states, signals, and job control. Additionally, it required immense knowledge of standard streams, which were critical in implementing I/O redirection and pipelines. Finally, cementing an understanding of how shell environments interact with the kernel was the frequent need for and use of a variety of system calls. Together, this implementation of BigShell, was the practical application needed to bring my own knowledge of a shell from using a few simple commands in a shell, to understanding how a shell actually executes those commands.
